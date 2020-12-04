@@ -1,5 +1,6 @@
 ## created by sanyabeast <a.gvrnsk@gmail.com>\
 ## 05 dec 2020
+## ! uses PYTHON 3.8.3
 
 import subprocess
 import sys
