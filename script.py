@@ -3,12 +3,13 @@
 from beastlib.core import Engine, Actor
 from time import time
 import stackless
+import simplejson as json
 
 engine = Engine({
     "debug": True
 })
 
-print "test"
+engine.log(json.dumps([1, 3, 4]))
 
 # Loads the character movement images
 spritesheet = []
@@ -30,46 +31,37 @@ class Player(Actor):
         self.screenshot = 1
 
     def on_tick(self):
+        Actor.on_tick(self)
         self.sprite = spritesheet[self.direction][int(self.boolSprite)]
-        pad = engine.Controller()
-        if pad.cross:
-            
-            engine.die()
-        elif pad.triangle:
-            engine.screen.saveToFile("ms0:/PSP/PHOTO/screenshot%s.png" % self.screenshot)
-            self.screenshot += 1
-        elif pad.down and (not self.lastPad or time() - self.lastPad >= 0.05):
-            #Draw the player facing south:
-            self.lastPad = time()
-            self.direction = 1
-            if self.posY + self.sprite.height + self.speed < 272:
-                self.posY += self.speed
-                self.boolSprite = not self.boolSprite
-        elif pad.up and (not self.lastPad or time() - self.lastPad >= 0.05):
-            engine.log("up")
-            #Draw the player facing north:
-            self.lastPad = time()
-            self.direction = 0
-            if self.posY - self.speed >= 0:
-                self.posY -= self.speed
-                self.boolSprite = not self.boolSprite
-        elif pad.left and (not self.lastPad or time() - self.lastPad >= 0.05):
-            #Draw the player facing west:
-            self.lastPad = time()
-            self.direction = 2
-            if self.posX - self.speed >= 0:
-                self.posX -= self.speed
-                self.boolSprite = not self.boolSprite
-        elif pad.right and (not self.lastPad or time() - self.lastPad >= 0.05):
-            #Draw the player facing east:
-            self.lastPad = time()
-            self.direction = 3
-            if self.posX + self.sprite.width + self.speed < 480:
-                self.posX += self.speed
-                self.boolSprite = not self.boolSprite
     def draw(self, screen):
         screen.blit(self.sprite, 0, 0, self.sprite.width ,
             self.sprite.height, self.posX, self.posY, True)
+    def on_pad_triangle(self):
+        engine.screen.saveToFile("ms0:/PSP/PHOTO/screenshot%s.png" % self.screenshot)
+        self.screenshot += 1
+    def on_pad_cross(self):
+        engine.die()
+    def on_pad_left(self):
+        self.direction = 2
+        if self.posX - self.speed >= 0:
+            self.posX -= self.speed
+            self.boolSprite = not self.boolSprite
+    def on_pad_right(self):
+        self.direction = 3
+        if self.posX + self.sprite.width + self.speed < 480:
+            self.posX += self.speed
+            self.boolSprite = not self.boolSprite
+    def on_pad_up(self):
+        self.direction = 0
+        if self.posY - self.speed >= 0:
+            self.posY -= self.speed
+            self.boolSprite = not self.boolSprite
+    def on_pad_down(self):
+        self.direction = 1
+        if self.posY + self.sprite.height + self.speed < 272:
+            self.posY += self.speed
+            self.boolSprite = not self.boolSprite
+            
 
 class NPC(Actor):
     def __init__(self, props):
@@ -138,7 +130,10 @@ class NPC(Actor):
 # Creates the renderer object
 
 # Creates a player Agent
-play = Player({ "rend": engine.rend })
+play = Player({ 
+    "rend": engine.rend,
+    "is_pawn": True
+})
 # Creates one NPC that runs around the screen
 NPC1 = NPC({ "rend": engine.rend })
 
