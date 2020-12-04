@@ -1,10 +1,14 @@
 # -*- coding: iso-8859-1 -*-
 
-from beastlib.core import Engine, Agent, Renderer
+from beastlib.core import Engine, Actor
 from time import time
 import stackless
 
-engine = Engine()
+engine = Engine({
+    "debug": True
+})
+
+print "test"
 
 # Loads the character movement images
 spritesheet = []
@@ -15,73 +19,69 @@ spritesheet = engine.create_spritesheet([
     ['assets/amg1_rt1.png', 'assets/amg1_rt2.png'],
 ])
 
-class Player(Agent):
-    def __init__(self, rend):
-        Agent.__init__(self)
-        self.rend = rend        # Reference to the renderer tasklet
+class Player(Actor):
+    def __init__(self, props):
+        Actor.__init__(self, props)
         self.boolSprite = False
         self.direction = 1
         self.speed = 3
-        self.posX = 30
-        self.posY = 30
         self.lastPad = time()
-        self.rend.agents.append(self) # Adds this agent to the renderer
         self.sprite = spritesheet[self.direction][int(self.boolSprite)]
         self.screenshot = 1
 
-    def action(self):
+    def on_tick(self):
         self.sprite = spritesheet[self.direction][int(self.boolSprite)]
         pad = engine.Controller()
         if pad.cross:
-            print "exit"
-            self.rend.exit()
+            
+            engine.die()
         elif pad.triangle:
             engine.screen.saveToFile("ms0:/PSP/PHOTO/screenshot%s.png" % self.screenshot)
             self.screenshot += 1
         elif pad.down and (not self.lastPad or time() - self.lastPad >= 0.05):
-          #Draw the player facing south:
-          self.lastPad = time()
-          self.direction = 1
-          if self.posY + self.sprite.height + self.speed < 272:
-            self.posY += self.speed
-            self.boolSprite = not self.boolSprite
+            #Draw the player facing south:
+            self.lastPad = time()
+            self.direction = 1
+            if self.posY + self.sprite.height + self.speed < 272:
+                self.posY += self.speed
+                self.boolSprite = not self.boolSprite
         elif pad.up and (not self.lastPad or time() - self.lastPad >= 0.05):
-          #Draw the player facing north:
-          self.lastPad = time()
-          self.direction = 0
-          if self.posY - self.speed >= 0:
-            self.posY -= self.speed
-            self.boolSprite = not self.boolSprite
+            engine.log("up")
+            #Draw the player facing north:
+            self.lastPad = time()
+            self.direction = 0
+            if self.posY - self.speed >= 0:
+                self.posY -= self.speed
+                self.boolSprite = not self.boolSprite
         elif pad.left and (not self.lastPad or time() - self.lastPad >= 0.05):
-          #Draw the player facing west:
-          self.lastPad = time()
-          self.direction = 2
-          if self.posX - self.speed >= 0:
-            self.posX -= self.speed
-            self.boolSprite = not self.boolSprite
+            #Draw the player facing west:
+            self.lastPad = time()
+            self.direction = 2
+            if self.posX - self.speed >= 0:
+                self.posX -= self.speed
+                self.boolSprite = not self.boolSprite
         elif pad.right and (not self.lastPad or time() - self.lastPad >= 0.05):
-          #Draw the player facing east:
-          self.lastPad = time()
-          self.direction = 3
-          if self.posX + self.sprite.width + self.speed < 480:
-            self.posX += self.speed
-            self.boolSprite = not self.boolSprite
+            #Draw the player facing east:
+            self.lastPad = time()
+            self.direction = 3
+            if self.posX + self.sprite.width + self.speed < 480:
+                self.posX += self.speed
+                self.boolSprite = not self.boolSprite
+    def draw(self, screen):
+        screen.blit(self.sprite, 0, 0, self.sprite.width ,
+            self.sprite.height, self.posX, self.posY, True)
 
-class NPC(Agent):
-    def __init__(self, rend):
-        Agent.__init__(self)
-        self.rend = rend
+class NPC(Actor):
+    def __init__(self, props):
+        Actor.__init__(self, props)
         self.boolSprite = False
         self.direction = 0
         self.speed = 5
-        self.posX = 230
-        self.posY = 230
         self.lastPad = time()
-        self.rend.agents.append(self)
         self.sprite = spritesheet[self.direction][int(self.boolSprite)]
         self.count = 20
 
-    def action(self):
+    def on_tick(self):
         # This NPC runs around the screen changing its direction
         # when touches the border.
         self.sprite = spritesheet[self.direction][int(self.boolSprite)]
@@ -118,7 +118,9 @@ class NPC(Agent):
             else:
                 self.direction = 0
 
-
+    def draw(self, screen):
+        screen.blit(self.sprite, 0, 0, self.sprite.width,
+            self.sprite.height, self.posX, self.posY, True)
 
 
 # print "Real memory: ",pspos.realmem()
@@ -134,11 +136,11 @@ class NPC(Agent):
 #pspogg.play()
 
 # Creates the renderer object
-rend = Renderer()
+
 # Creates a player Agent
-play = Player(rend)
+play = Player({ "rend": engine.rend })
 # Creates one NPC that runs around the screen
-NPC1 = NPC(rend)
+NPC1 = NPC({ "rend": engine.rend })
 
 # Starts the game loop
 stackless.run()
