@@ -11,7 +11,7 @@ from time import time, localtime
 import datetime
 import stackless
 import sys
-from beastlib.core import CoreObject, Tickable, GLOBAL, PadButtonsObserver, DEFAULT_BUTTON_THROTTLE
+from beastlib.core import CoreObject, Tickable, GLOBAL, PadButtonsObserver, DEFAULT_BUTTON_THROTTLE, SCREEN_W, SCREEN_H
 from beastlib.types import *
 
 
@@ -19,11 +19,12 @@ def_font = psp2d.Font('assets/font.png')
 
 class Renderer(Tickable):
     TAG = "renderer"
+    is_renderer = True
     def __init__(self, props={}):
         Tickable.__init__(self, props)
         self.renderables = []
         GLOBAL["rend"] = self
-    def on_tick(self):
+    def on_tick(self, delta):
         self.screen.clear(psp2d.Color(0,0,0,255))
         for renderable in self.renderables:
             renderable.draw(self.screen)
@@ -33,8 +34,14 @@ class Renderer(Tickable):
             renderable.alive = False
         CoreObject.die(self)
 
+    def add_child(self, child=None, child_id=None):
+        Tickable.add_child(self, child, child_id)
+        if (child.is_renderable):
+            self.renderables.append(child)
+
 class Engine(Tickable):
     TAG = "engine"
+    is_engine = True
     Controller = psp2d.Controller
     debug = False
     rend = None
@@ -42,14 +49,22 @@ class Engine(Tickable):
         Tickable.__init__(self, props)
         GLOBAL["engine"] = self
         pspos.setclocks( self.get(props, "cpu_clock", 333), self.get(props, "mem_clock", 166) )
-        self.rend = self.add_child("rend", Renderer({}))
+        self.add_child(Renderer(props))
         self.debug = self.get(props, "debug")
         if (self.debug):  GLOBAL["logger"] = DebugLog({ "rend": self.rend  })
         self.log("created")
     def create_spritesheet(self, urls):
         sprites = []
         for u in urls:
-            sprites.append((psp2d.Image(u[0]), psp2d.Image(u[1]))) #Direction = north   = 0
+            if type(u) is str:
+                sprites.append(psp2d.Image(u))
+            elif type(u) is list:
+                r = []
+                for uu in u:
+                    r.append(psp2d.Image(uu))
+                sprites.append(r) #Direction = north   = 0
+            elif (type(u) is tuple):
+                sprites.append((psp2d.Image(u[0]), psp2d.Image(u[1]))) #Direction = north   = 0
         return sprites
     def load_font(self, url):
         return psp2d.Font(url)   
@@ -59,49 +74,33 @@ class Engine(Tickable):
         
 class Renderable(Tickable):
     TAG = "renderable"
+    is_renderable = True
     def __init__(self, props):
         Tickable.__init__(self, props)
-        self.rend = props["rend"]   
-        self.rend.renderables.append(self) # Adds this agent to the renderer
-        self.position = Vec2(0, 0)
+        rend = props["rend"] if ("rend" in props and props["rend"]!=None) else GLOBAL["rend"]
+        rend.add_child(self) # Adds this agent to the renderer
+        self.position = Vec2(self.get(props, "position_x", 0), self.get(props, "position_y", 0))
     def draw(self, screen):
         pass
 
 class Actor(Renderable, PadButtonsObserver):
     TAG = "actor"
+    is_actor = True
     is_pawn = False
     pad_state = {}
     def __init__(self, props):
         Renderable.__init__(self, props)
         PadButtonsObserver.__init__(self, props)
-    def on_tick(self):
-        Renderable.on_tick(self)
-        PadButtonsObserver.on_tick(self)
-    #     if self.is_pawn:
-    #         pad = GLOBAL["engine"].Controller()
-    #         if   pad.cross:     self.is_button_throttled("cross") and self.on_pad_cross(pad)
-    #         elif pad.triangle:  self.is_button_throttled("triangle") and self.on_pad_triangle(pad)
-    #         elif pad.circle:    self.is_button_throttled("circle") and self.on_pad_circle(pad)
-    #         elif pad.square:    self.is_button_throttled("square") and self.on_pad_square(pad)
-    #         elif pad.down:      self.is_button_throttled("down") and self.on_pad_down(pad)
-    #         elif pad.up:        self.is_button_throttled("up") and self.on_pad_up(pad)
-    #         elif pad.left:      self.is_button_throttled("left") and self.on_pad_left(pad)
-    #         elif pad.right:     self.is_button_throttled("right") and self.on_pad_right(pad)
-    # def on_pad_cross(self, pad): pass
-    # def on_pad_triangle(self, pad): pass
-    # def on_pad_circle(self, pad): pass
-    # def on_pad_square(self, pad): pass
-    # def on_pad_down(self, pad): pass
-    # def on_pad_up(self, pad): pass
-    # def on_pad_left(self, pad): pass
-    # def on_pad_right(self, pad): pass
-
-    
+    def on_tick(self, delta=1):
+        Renderable.on_tick(self, delta)
+        PadButtonsObserver.on_tick(self, delta)
 
 class DebugLog(Renderable):
     TAG = "debuglog"
+    is_debuglog = True
     lines = []
-    max_log = 10
+    max_log = 20
+    tick_interval = 0.5
     def __init__(self, props):
         Renderable.__init__(self, props)
     def draw(self, screen):
