@@ -6,59 +6,7 @@ from time import time
 import stackless
 import simplejson as json
 import random
-
-
-engine = Engine({
-    "debug": True
-})
-
-engine.log(json.dumps([1, 3, 4]))
-
-# Loads the character movement images
-spritesheet_purple = engine.create_spritesheet([
-    ['assets/purple_wizard/amg1_bk1.png', 'assets/purple_wizard/amg1_bk2.png'],
-    ['assets/purple_wizard/amg1_fr1.png', 'assets/purple_wizard/amg1_fr2.png'],
-    ['assets/purple_wizard/amg1_lf1.png', 'assets/purple_wizard/amg1_lf2.png'],
-    ['assets/purple_wizard/amg1_rt1.png', 'assets/purple_wizard/amg1_rt2.png'],
-])
-
-spritesheet_lime = engine.create_spritesheet([
-    ['assets/lime_wizard/amg1_bk1.png', 'assets/lime_wizard/amg1_bk2.png'],
-    ['assets/lime_wizard/amg1_fr1.png', 'assets/lime_wizard/amg1_fr2.png'],
-    ['assets/lime_wizard/amg1_lf1.png', 'assets/lime_wizard/amg1_lf2.png'],
-    ['assets/lime_wizard/amg1_rt1.png', 'assets/lime_wizard/amg1_rt2.png'],
-])
-
-spritesheet_blue = engine.create_spritesheet([
-    ['assets/blue_wizard/amg1_bk1.png', 'assets/blue_wizard/amg1_bk2.png'],
-    ['assets/blue_wizard/amg1_fr1.png', 'assets/blue_wizard/amg1_fr2.png'],
-    ['assets/blue_wizard/amg1_lf1.png', 'assets/blue_wizard/amg1_lf2.png'],
-    ['assets/blue_wizard/amg1_rt1.png', 'assets/blue_wizard/amg1_rt2.png'],
-])
-
-spritesheet_red = engine.create_spritesheet([
-    ['assets/red_wizard/amg1_bk1.png', 'assets/red_wizard/amg1_bk2.png'],
-    ['assets/red_wizard/amg1_fr1.png', 'assets/red_wizard/amg1_fr2.png'],
-    ['assets/red_wizard/amg1_lf1.png', 'assets/red_wizard/amg1_lf2.png'],
-    ['assets/red_wizard/amg1_rt1.png', 'assets/red_wizard/amg1_rt2.png'],
-])
-
-spritesheet_cyan = engine.create_spritesheet([
-    ['assets/cyan_wizard/amg1_bk1.png', 'assets/cyan_wizard/amg1_bk2.png'],
-    ['assets/cyan_wizard/amg1_fr1.png', 'assets/cyan_wizard/amg1_fr2.png'],
-    ['assets/cyan_wizard/amg1_lf1.png', 'assets/cyan_wizard/amg1_lf2.png'],
-    ['assets/cyan_wizard/amg1_rt1.png', 'assets/cyan_wizard/amg1_rt2.png'],
-])
-
-spritesheet_fire = engine.create_spritesheet([
-    [
-        'assets/fire_a/fire_0.png', 
-        'assets/fire_a/fire_1.png',
-        'assets/fire_a/fire_2.png', 
-        'assets/fire_a/fire_3.png'
-    ]
-])
-
+import threading
 
 class Player(Actor):
     def __init__(self, props):
@@ -69,7 +17,7 @@ class Player(Actor):
         self.sprint = 0
         self.sprint_speed = 4
         self.lastPad = time()
-        self.spritesheet = self.get(props, "spritesheet", spritesheet_purple)
+        self.spritesheet = self.get(props, "spritesheet")
         self.sprite = self.spritesheet[self.direction][int(self.boolSprite)]
         self.screenshot = 1
 
@@ -110,7 +58,6 @@ class Player(Actor):
             self.position.y += (self.speed*self.tick_delta)
             self.boolSprite = not self.boolSprite
             
-
 class NPC(Actor):
     def __init__(self, props):
         Actor.__init__(self, props)
@@ -118,7 +65,7 @@ class NPC(Actor):
         self.direction = 0
         self.speed = 2
         self.lastPad = time()
-        self.spritesheet = self.get(props, "spritesheet", spritesheet_purple)
+        self.spritesheet = self.get(props, "spritesheet")
         self.sprite = self.spritesheet[self.direction][int(self.boolSprite)]
         self.count = 20
 
@@ -169,7 +116,7 @@ class Fire(Renderable):
         self.direction = 0
         self.speed = 2
         self.lastPad = time()
-        self.spritesheet = self.get(props, "spritesheet", spritesheet_fire)
+        self.spritesheet = self.get(props, "spritesheet")
         self.sprite = self.spritesheet[0][int(self.sprite_index)]
         self.count = 20
 
@@ -182,56 +129,95 @@ class Fire(Renderable):
         screen.blit(self.sprite, 0, 0, self.sprite.width,
             self.sprite.height, self.position.x, self.position.y, True)
 
+class GameThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+    def run(self):
+        engine.log(json.dumps([1, 3, 4]))
+        spritesheet_purple = engine.create_spritesheet([
+            ['assets/purple_wizard/amg1_bk1.png', 'assets/purple_wizard/amg1_bk2.png'],
+            ['assets/purple_wizard/amg1_fr1.png', 'assets/purple_wizard/amg1_fr2.png'],
+            ['assets/purple_wizard/amg1_lf1.png', 'assets/purple_wizard/amg1_lf2.png'],
+            ['assets/purple_wizard/amg1_rt1.png', 'assets/purple_wizard/amg1_rt2.png'],
+        ])
+        spritesheet_lime = engine.create_spritesheet([
+            ['assets/lime_wizard/amg1_bk1.png', 'assets/lime_wizard/amg1_bk2.png'],
+            ['assets/lime_wizard/amg1_fr1.png', 'assets/lime_wizard/amg1_fr2.png'],
+            ['assets/lime_wizard/amg1_lf1.png', 'assets/lime_wizard/amg1_lf2.png'],
+            ['assets/lime_wizard/amg1_rt1.png', 'assets/lime_wizard/amg1_rt2.png'],
+        ])
+        spritesheet_blue = engine.create_spritesheet([
+            ['assets/blue_wizard/amg1_bk1.png', 'assets/blue_wizard/amg1_bk2.png'],
+            ['assets/blue_wizard/amg1_fr1.png', 'assets/blue_wizard/amg1_fr2.png'],
+            ['assets/blue_wizard/amg1_lf1.png', 'assets/blue_wizard/amg1_lf2.png'],
+            ['assets/blue_wizard/amg1_rt1.png', 'assets/blue_wizard/amg1_rt2.png'],
+        ])
+        spritesheet_red = engine.create_spritesheet([
+            ['assets/red_wizard/amg1_bk1.png', 'assets/red_wizard/amg1_bk2.png'],
+            ['assets/red_wizard/amg1_fr1.png', 'assets/red_wizard/amg1_fr2.png'],
+            ['assets/red_wizard/amg1_lf1.png', 'assets/red_wizard/amg1_lf2.png'],
+            ['assets/red_wizard/amg1_rt1.png', 'assets/red_wizard/amg1_rt2.png'],
+        ])
+        spritesheet_cyan = engine.create_spritesheet([
+            ['assets/cyan_wizard/amg1_bk1.png', 'assets/cyan_wizard/amg1_bk2.png'],
+            ['assets/cyan_wizard/amg1_fr1.png', 'assets/cyan_wizard/amg1_fr2.png'],
+            ['assets/cyan_wizard/amg1_lf1.png', 'assets/cyan_wizard/amg1_lf2.png'],
+            ['assets/cyan_wizard/amg1_rt1.png', 'assets/cyan_wizard/amg1_rt2.png'],
+        ])
+        spritesheet_fire = engine.create_spritesheet([
+            [
+                'assets/fire_a/fire_0.png', 
+                'assets/fire_a/fire_1.png',
+                'assets/fire_a/fire_2.png', 
+                'assets/fire_a/fire_3.png'
+            ]
+        ])
 
-fires = 0
-while fires<10:
-    fire = Fire({
-        "tick_interval": 0.1,
-        "position_x": engine.random_int(0, SCREEN_W),
-        "position_y": engine.random_int(0, SCREEN_H),  
-        "sprite_index": engine.random_int(0, 3),
-    })
-    fires+=1
+        char_spritesheets = [
+            spritesheet_cyan,
+            spritesheet_lime,
+            spritesheet_blue,
+            spritesheet_red
+        ]
 
-play = Player({ 
-    "is_pawn": True,
-    "tick_interval": 0.0333,
-    "position_x": engine.random_int(0, SCREEN_W),
-    "position_y": engine.random_int(0, SCREEN_H),
+        fires = 0
+        while fires<20:
+            fire = Fire({
+                "tick_interval": 0.1,
+                "position_x": engine.random_int(0, SCREEN_W),
+                "position_y": engine.random_int(0, SCREEN_H),  
+                "sprite_index": engine.random_int(0, 3),
+                "spritesheet": spritesheet_fire
+            })
+            fires+=1
+
+        player = Player({ 
+            "is_pawn": True,
+            "tick_interval": 0.0333,
+            "spritesheet": spritesheet_purple,
+            "position_x": engine.random_int(0, SCREEN_W),
+            "position_y": engine.random_int(0, SCREEN_H),
+        })
+
+        chars = 0
+        while chars<20:
+            NPC({ 
+                "tick_interval": 0.0333,
+                "spritesheet": engine.random_choice(char_spritesheets),
+                "position_x": engine.random_int(0, SCREEN_W),
+                "position_y": engine.random_int(0, SCREEN_H),
+            })
+            chars+=1
+
+    
+        engine.set_loading(False)
+
+engine = Engine({
+    "debug": True,
+    "is_loading": True
 })
 
-NPC1 = NPC({ 
-    "tick_interval": 0.0333,
-    "spritesheet": spritesheet_blue,
-    "position_x": engine.random_int(0, SCREEN_W),
-    "position_y": engine.random_int(0, SCREEN_H),
-})
-
-NPC2 = NPC({ 
-    "tick_interval": 0.0444,
-    "spritesheet": spritesheet_lime,
-    "position_x": engine.random_int(0, SCREEN_W),
-    "position_y": engine.random_int(0, SCREEN_H),
-})
-
-
-NPC3 = NPC({ 
-    "tick_interval": 0.0555,
-    "spritesheet": spritesheet_red,
-    "position_x": engine.random_int(0, SCREEN_W),
-    "position_y": engine.random_int(0, SCREEN_H),  
-})
-
-NPC4 = NPC({ 
-    "tick_interval": 0.0333,
-    "spritesheet": spritesheet_cyan,
-    "position_x": engine.random_int(0, SCREEN_W),
-    "position_y": engine.random_int(0, SCREEN_H),
-})
-
-
-
-
-
+game_thread = GameThread()
+game_thread.run()
 
 stackless.run()

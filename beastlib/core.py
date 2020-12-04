@@ -7,7 +7,7 @@ import pspos
 import pspnet
 import pspmp3
 import pspogg
-from time import time, localtime
+from time import time, localtime, sleep
 import datetime
 import stackless
 import sys
@@ -40,7 +40,7 @@ class CoreObject(object):
         return dict[path] if path in dict else def_value
     def die(self):
         self.alive = False
-        for k in self.children: k.die()
+        for k in self.children: self.children[k].die()
     def add_child(self, child=None, child_id=None):
         if (child==None):
             self.log(data="child is None", to_console=True)
@@ -58,6 +58,8 @@ class CoreObject(object):
         return random.random()< 0.5 * (f)
     def random_int(self, a=0, b=100):
         return random.randint(a, b)
+    def random_choice(self, arr=[]):
+        return random.choice(arr)
 
 class Tickable(CoreObject):
     TAG = "agent"

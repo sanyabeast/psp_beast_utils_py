@@ -7,7 +7,7 @@ import pspos
 import pspnet
 import pspmp3
 import pspogg
-from time import time, localtime
+from time import time, localtime, sleep
 import datetime
 import stackless
 import sys
@@ -17,6 +17,9 @@ from beastlib.types import *
 
 def_font = psp2d.Font('assets/font.png')    
 
+
+
+
 class Renderer(Tickable):
     TAG = "renderer"
     is_renderer = True
@@ -24,10 +27,16 @@ class Renderer(Tickable):
         Tickable.__init__(self, props)
         self.renderables = []
         GLOBAL["rend"] = self
+        self.loader = self.add_child(Loader(props), "loader")
+        if self.get(props, "is_loading")==True: self.set_loading(True)
+
     def on_tick(self, delta):
         self.screen.clear(psp2d.Color(0,0,0,255))
-        for renderable in self.renderables:
-            renderable.draw(self.screen)
+        if not self.show_loader:
+            for renderable in self.renderables:
+                if  renderable.visible: renderable.draw(self.screen)
+        else:
+            if self.loader.visible: self.loader.draw(self.screen)
         self.screen.swap()
     def die (self):
         for renderable in self.renderables:
@@ -38,6 +47,11 @@ class Renderer(Tickable):
         Tickable.add_child(self, child, child_id)
         if (child.is_renderable):
             self.renderables.append(child)
+        return child
+
+    def set_loading(self, show_loader=True):
+        self.show_loader = show_loader
+        self.loader.visible = show_loader
 
 class Engine(Tickable):
     TAG = "engine"
@@ -45,12 +59,14 @@ class Engine(Tickable):
     Controller = psp2d.Controller
     debug = False
     rend = None
+    is_loading = False
     def __init__(self, props={}):
         Tickable.__init__(self, props)
         GLOBAL["engine"] = self
         pspos.setclocks( self.get(props, "cpu_clock", 333), self.get(props, "mem_clock", 166) )
         self.add_child(Renderer(props))
-        self.debug = self.get(props, "debug")
+        self.debug = self.get(props, "debug", False)
+        self.is_loading = self.get(props, "is_loading", False)
         if (self.debug):  GLOBAL["logger"] = DebugLog({ "rend": self.rend  })
         self.log("created")
     def create_spritesheet(self, urls):
@@ -69,12 +85,15 @@ class Engine(Tickable):
     def load_font(self, url):
         return psp2d.Font(url)   
     def die(self):
-        print("die")
         CoreObject.die(self)
-        
+    def set_loading(self, is_loading=False):
+        self.is_loading = is_loading
+        GLOBAL["rend"].set_loading(False)
+
 class Renderable(Tickable):
     TAG = "renderable"
     is_renderable = True
+    visible = True
     def __init__(self, props):
         Tickable.__init__(self, props)
         rend = props["rend"] if ("rend" in props and props["rend"]!=None) else GLOBAL["rend"]
@@ -94,6 +113,15 @@ class Actor(Renderable, PadButtonsObserver):
     def on_tick(self, delta=1):
         Renderable.on_tick(self, delta)
         PadButtonsObserver.on_tick(self, delta)
+
+class Loader(Renderable):
+    TAG = "loader"
+    is_loader = True
+    tick_interval = 0.5
+    def __init__(self, props):
+        Renderable.__init__(self, props)
+    def draw(self, screen):
+        def_font.drawText(screen, 10, 50, ":LOADING")
 
 class DebugLog(Renderable):
     TAG = "debuglog"
