@@ -179,7 +179,7 @@ class Game(Tickable):
         ]
 
         fires = 0
-        while fires<20:
+        while fires<10:
             fire = Fire({
                 "tick_interval": 0.1,
                 "position_x": engine.random_int(0, SCREEN_W),
@@ -198,7 +198,7 @@ class Game(Tickable):
         })
 
         chars = 0
-        while chars<20:
+        while chars<8:
             NPC({ 
                 "tick_interval": 0.0333,
                 "spritesheet": engine.random_choice(char_spritesheets),

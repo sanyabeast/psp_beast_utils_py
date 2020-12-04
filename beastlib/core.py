@@ -34,6 +34,8 @@ class CoreObject(object):
     alive = False
     screen = screen
     children_count = 0
+    child_id = None
+    parent = None
     def __init__(self, props={}):
         self.children = {}
         self.alive = True
@@ -41,14 +43,26 @@ class CoreObject(object):
         return dict[path] if path in dict else def_value
     def die(self):
         self.alive = False
+        if self.parent:
+            self.parent.remove_child(self)
         for k in self.children: self.children[k].die()
     def add_child(self, child=None, child_id=None):
         if (child==None):
             self.log(data="child is None", to_console=True)
             return
+            
         if child_id==None: child_id=str(self.children_count)
+        child.child_id = child_id
+        child.parent = self
         self.children[child_id]=child
         self.children_count+=1
+        return child
+
+    def remove_child(self, child=None, child_id=None):
+        c = self.children[child.child_id if child!=None else child_id]
+        del self.children[c]
+        c.parent=None
+        c.child_id = None
         return child
     def log(self, data="...", to_console=False, to_screen=True):
         t = "%s: %s" % (self.TAG, str(data))

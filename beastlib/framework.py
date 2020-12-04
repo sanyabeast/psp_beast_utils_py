@@ -39,9 +39,9 @@ class Renderer(Tickable):
             if self.loader.visible: self.loader.draw(self.screen)
         self.screen.swap()
     def die (self):
-        for renderable in self.renderables:
-            renderable.alive = False
-        CoreObject.die(self)
+        # for renderable in self.renderables:
+        #     renderable.alive = False
+        Tickable.die(self)
 
     def add_child(self, child=None, child_id=None):
         Tickable.add_child(self, child, child_id)
@@ -85,7 +85,7 @@ class Engine(Tickable):
     def load_font(self, url):
         return psp2d.Font(url)   
     def die(self):
-        CoreObject.die(self)
+        Tickable.die(self)
     def set_loading(self, is_loading=False):
         self.is_loading = is_loading
         GLOBAL["rend"].set_loading(False)
