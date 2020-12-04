@@ -13,6 +13,7 @@ import stackless
 import sys
 from beastlib.types import *
 import random
+import threading
 
 
 ETHALON_TICK_INTERVAL = 0.0333333
@@ -60,12 +61,18 @@ class CoreObject(object):
         return random.randint(a, b)
     def random_choice(self, arr=[]):
         return random.choice(arr)
+    def run_on_thread(self, cb):
+        th = threading.Thread(target=cb)
+        return th
+    def cycle_number(self, num=0, max=1, direction=1):
+        return (num+direction)%max
 
 class Tickable(CoreObject):
     TAG = "agent"
     tick_interval = ETHALON_TICK_INTERVAL
     prev_tick_time = time()
     tick_delta = 1
+    tick_started = False
     def __init__(self, props={}):
         CoreObject.__init__(self, props)
         self.ch = stackless.channel()
@@ -74,9 +81,7 @@ class Tickable(CoreObject):
         self.log("created")
     def set_tick_interval(self, interval=1/30):
         self.tick_interval= interval
-        print self.tick_interval
     def tick(self):
-        
         while self.alive:
             now = time()
             if now - self.prev_tick_time>self.tick_interval:
@@ -85,7 +90,15 @@ class Tickable(CoreObject):
                 self.prev_tick_time = now
             stackless.schedule()
     def on_tick(self, delta=1):
+        if not self.tick_started:
+            self.tick_started = True
+            self.on_begin()
+    def on_begin(self):
         pass
+    
+
+    
+        
 
 class PadButtonsObserver(CoreObject):
     TAG = "padbuttonsobserver"

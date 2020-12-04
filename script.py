@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 
 
-from beastlib.framework import Engine, Actor, Renderable, SCREEN_W, SCREEN_H
+from beastlib.framework import Engine, Actor, Renderable, Tickable, SCREEN_W, SCREEN_H
 from time import time
 import stackless
 import simplejson as json
@@ -129,10 +129,8 @@ class Fire(Renderable):
         screen.blit(self.sprite, 0, 0, self.sprite.width,
             self.sprite.height, self.position.x, self.position.y, True)
 
-class GameThread(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-    def run(self):
+class Game(Tickable):
+    def on_begin(self):
         engine.log(json.dumps([1, 3, 4]))
         spritesheet_purple = engine.create_spritesheet([
             ['assets/purple_wizard/amg1_bk1.png', 'assets/purple_wizard/amg1_bk2.png'],
@@ -209,15 +207,15 @@ class GameThread(threading.Thread):
             })
             chars+=1
 
-    
         engine.set_loading(False)
+
+game = Game({
+    "tick_interval": 1
+})
 
 engine = Engine({
     "debug": True,
     "is_loading": True
 })
-
-game_thread = GameThread()
-game_thread.run()
 
 stackless.run()
