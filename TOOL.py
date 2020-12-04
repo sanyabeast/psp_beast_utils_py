@@ -46,11 +46,11 @@ def get_args(help="", params=[]):
 ## tasks
 def commit(commit_text="some misterious tweaks"):
     run_shell(command="git add -A")
-    run_shell(command=f"git commit -m \"{args.git_commit_text}\"")
+    run_shell(command=f"git commit -m \"{args.git_commit_text}\""),
 
 args = get_args("packaing tool", [
     ["git-commit", str2bool, False],
-    ["git-commit-text", str, "some misteriuos tweaks"]
+    ["git-commit-text", str, "some misteriuos tweaks"],
 ])
 
 
