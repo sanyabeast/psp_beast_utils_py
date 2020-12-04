@@ -1,0 +1,72 @@
+-------------- Python-PSP started Fri Dec  4 14:31:05 2020
+
+Free memory: 1167360
+PyPSP running in: ms0:/PSP/GAME/HelloWorld
+Could not find platform independent libraries <prefix>
+Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]
+Search path: python.zip;ms0:/lib/python21.zip;ms0:/python/site-packages;ms0:/python
+
+Traceback (most recent call last):
+  File "script.py", line 4, in <module>
+    import pygame
+ImportError: No module named pygame
+--------------------------------------------------------------------------------
+-------------- Python-PSP started Fri Dec  4 14:31:09 2020
+
+Free memory: 1167360
+PyPSP running in: ms0:/PSP/GAME/HelloWorld
+Could not find platform independent libraries <prefix>
+Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]
+Search path: python.zip;ms0:/lib/python21.zip;ms0:/python/site-packages;ms0:/python
+
+Traceback (most recent call last):
+  File "script.py", line 4, in <module>
+    import pygame
+ImportError: No module named pygame
+--------------------------------------------------------------------------------
+-------------- Python-PSP started Fri Dec  4 14:31:20 2020
+
+Free memory: 1167360
+PyPSP running in: ms0:/PSP/GAME/HelloWorld
+Could not find platform independent libraries <prefix>
+Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]
+Search path: python.zip;ms0:/lib/python21.zip;ms0:/python/site-packages;ms0:/python
+
+Traceback (most recent call last):
+  File "script.py", line 4, in <module>
+    import pygame
+ImportError: No module named pygame
+--------------------------------------------------------------------------------
+-------------- Python-PSP started Fri Dec  4 14:31:43 2020
+
+Free memory: 1167360
+PyPSP running in: ms0:/PSP/GAME/HelloWorld
+Search path: python.zip;ms0:/PSP/GAME/lib/python21.zip;ms0:/PSP/GAME/HelloWorld/python/site-packages;ms0:/PSP/GAME/HelloWorld/python
+
+Traceback (most recent call last):
+  File "script.py", line 4, in <module>
+    import pygame
+ImportError: No module named pygame
+--------------------------------------------------------------------------------
+-------------- Python-PSP started Fri Dec  4 14:32:02 2020
+
+Free memory: 1167360
+PyPSP running in: ms0:/PSP/GAME/HelloWorld
+Search path: python.zip;ms0:/PSP/GAME/lib/python21.zip;ms0:/PSP/GAME/HelloWorld/python/site-packages;ms0:/PSP/GAME/HelloWorld/python
+
+Traceback (most recent call last):
+  File "script.py", line 4, in <module>
+    import pygame
+ImportError: No module named pygame
+--------------------------------------------------------------------------------
+-------------- Python-PSP started Fri Dec  4 14:32:05 2020
+
+Free memory: 1167360
+PyPSP running in: ms0:/PSP/GAME/HelloWorld
+Search path: python.zip;ms0:/PSP/GAME/lib/python21.zip;ms0:/PSP/GAME/HelloWorld/python/site-packages;ms0:/PSP/GAME/HelloWorld/python
+
+Traceback (most recent call last):
+  File "script.py", line 4, in <module>
+    import pygame
+ImportError: No module named pygame
+--------------------------------------------------------------------------------

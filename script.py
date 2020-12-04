@@ -1,6 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 
-from beastlib.core import Engine, Actor
+
+from beastlib.engine import Engine, Actor
 from time import time
 import stackless
 import simplejson as json
@@ -26,6 +27,8 @@ class Player(Actor):
         self.boolSprite = False
         self.direction = 1
         self.speed = 3
+        self.sprint = 0
+        self.sprint_speed = 4
         self.lastPad = time()
         self.sprite = spritesheet[self.direction][int(self.boolSprite)]
         self.screenshot = 1
@@ -35,31 +38,36 @@ class Player(Actor):
         self.sprite = spritesheet[self.direction][int(self.boolSprite)]
     def draw(self, screen):
         screen.blit(self.sprite, 0, 0, self.sprite.width ,
-            self.sprite.height, self.posX, self.posY, True)
-    def on_pad_triangle(self):
+            self.sprite.height, self.position.x, self.position.y, True)
+    def on_pad_triangle(self, pad):
         engine.screen.saveToFile("ms0:/PSP/PHOTO/screenshot%s.png" % self.screenshot)
         self.screenshot += 1
-    def on_pad_cross(self):
+    def on_pad_cross(self, pad):
+        self.log("cross")
         engine.die()
-    def on_pad_left(self):
+    def on_pad_left(self, pad):
         self.direction = 2
-        if self.posX - self.speed >= 0:
-            self.posX -= self.speed
+        self.log("left")
+        if self.position.x - (self.speed+self.sprint*self.sprint_speed) >= 0:
+            self.position.x -= (self.speed+self.sprint*self.sprint_speed)
             self.boolSprite = not self.boolSprite
-    def on_pad_right(self):
+    def on_pad_right(self, pad):
         self.direction = 3
-        if self.posX + self.sprite.width + self.speed < 480:
-            self.posX += self.speed
+        self.log("right")
+        if self.position.x + self.sprite.width + (self.speed+self.sprint*self.sprint_speed) < 480:
+            self.position.x += (self.speed+self.sprint*self.sprint_speed)
             self.boolSprite = not self.boolSprite
-    def on_pad_up(self):
+    def on_pad_up(self, pad):
         self.direction = 0
-        if self.posY - self.speed >= 0:
-            self.posY -= self.speed
+        self.log("up")
+        if self.position.y - (self.speed+self.sprint*self.sprint_speed) >= 0:
+            self.position.y -= (self.speed+self.sprint*self.sprint_speed)
             self.boolSprite = not self.boolSprite
-    def on_pad_down(self):
+    def on_pad_down(self, pad):
         self.direction = 1
-        if self.posY + self.sprite.height + self.speed < 272:
-            self.posY += self.speed
+        self.log("down")
+        if self.position.y + self.sprite.height + (self.speed+self.sprint*self.sprint_speed) < 272:
+            self.position.y += (self.speed+self.sprint*self.sprint_speed)
             self.boolSprite = not self.boolSprite
             
 
@@ -74,70 +82,51 @@ class NPC(Actor):
         self.count = 20
 
     def on_tick(self):
-        # This NPC runs around the screen changing its direction
-        # when touches the border.
         self.sprite = spritesheet[self.direction][int(self.boolSprite)]
         if self.direction == 0 and \
            (not self.lastPad or time() - self.lastPad >= 0.05):
             self.lastPad = time()
-            if self.posY - self.speed >= 20:
-                self.posY -= self.speed
+            if self.position.y - self.speed >= 20:
+                self.position.y -= self.speed
                 self.boolSprite = not self.boolSprite
             else:
                 self.direction = 2
         if self.direction == 2 and \
            (not self.lastPad or time() - self.lastPad >= 0.05):
             self.lastPad = time()
-            if self.posX - self.speed > 0:
-                self.posX -= self.speed
+            if self.position.x - self.speed > 0:
+                self.position.x -= self.speed
                 self.boolSprite = not self.boolSprite
             else:
                 self.direction = 1
         if self.direction == 1 and \
            (not self.lastPad or time() - self.lastPad >= 0.05):
             self.lastPad = time()
-            if self.posY + self.sprite.height + self.speed < 252:
-                self.posY += self.speed
+            if self.position.y + self.sprite.height + self.speed < 252:
+                self.position.y += self.speed
                 self.boolSprite = not self.boolSprite
             else:
                 self.direction = 3
         if self.direction == 3 and \
            (not self.lastPad or time() - self.lastPad >= 0.05):
             self.lastPad = time()
-            if self.posX + self.sprite.width + self.speed < 450:
-                self.posX += self.speed
+            if self.position.x + self.sprite.width + self.speed < 450:
+                self.position.x += self.speed
                 self.boolSprite = not self.boolSprite
             else:
                 self.direction = 0
 
     def draw(self, screen):
         screen.blit(self.sprite, 0, 0, self.sprite.width,
-            self.sprite.height, self.posX, self.posY, True)
+            self.sprite.height, self.position.x, self.position.y, True)
 
 
-# print "Real memory: ",pspos.realmem()
-
-#Loads background music
-# pspmp3.init(1)
-#pspmp3.load("MP3Sample.mp3")        # Uncomment this to add a MP3 in backgound
-# pspmp3.play()
-
-#Loads background music in ogg
-#pspogg.init(2)
-#pspogg.load('Oggsample.ogg')
-#pspogg.play()
-
-# Creates the renderer object
-
-# Creates a player Agent
 play = Player({ 
     "rend": engine.rend,
     "is_pawn": True
 })
-# Creates one NPC that runs around the screen
+
 NPC1 = NPC({ "rend": engine.rend })
 
-# Starts the game loop
+
 stackless.run()
-#pspogg.end()
-# pspmp3.end()
