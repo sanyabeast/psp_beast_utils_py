@@ -1,10 +1,11 @@
 # -*- coding: iso-8859-1 -*-
 
 
-from beastlib.engine import Engine, Actor
+from beastlib.framework import Engine, Actor
 from time import time
 import stackless
 import simplejson as json
+
 
 engine = Engine({
     "debug": True
