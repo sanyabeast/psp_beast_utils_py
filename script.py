@@ -1,16 +1,15 @@
 # -*- coding: iso-8859-1 -*-
 
 
-from beastlib.framework import Engine, Actor, Renderable, Tickable, SCREEN_W, SCREEN_H
+from beastlib.core import GLOBAL
+from beastlib.tools import random_bool, random_choice, random_int
+from beastlib.framework import Engine, Pawn, Actor, Tickable
 from time import time
 import stackless
-import simplejson as json
-import random
-import threading
 
-class Player(Actor):
+class Player(Pawn):
     def __init__(self, props):
-        Actor.__init__(self, props)
+        Pawn.__init__(self, props)
         self.boolSprite = False
         self.direction = 1
         self.speed = 3
@@ -19,20 +18,21 @@ class Player(Actor):
         self.lastPad = time()
         self.spritesheet = self.get(props, "spritesheet")
         self.sprite = self.spritesheet[self.direction][int(self.boolSprite)]
-        self.screenshot = 1
 
     def on_tick(self, delta=1):
-        Actor.on_tick(self, delta)
+        Pawn.on_tick(self, delta)
         self.sprite = self.spritesheet[self.direction][int(self.boolSprite)]
-    def draw(self, screen):
-        screen.blit(self.sprite, 0, 0, self.sprite.width ,
-            self.sprite.height, self.position.x, self.position.y, True)
+    def draw(self):
+        GLOBAL.SCREEN.blit(self.sprite, 0, 0, self.sprite.width ,
+            self.sprite.height, int(self.position.x), int(self.position.y), True)
     def on_pad_triangle(self, pad):
-        engine.screen.saveToFile("ms0:/PSP/PHOTO/screenshot%s.png" % self.screenshot)
-        self.screenshot += 1
+        from beastlib.tools import get_random_string
+        self.log(get_random_string("test"))
     def on_pad_cross(self, pad):
         self.log("cross")
         engine.die()
+    def on_pad_circle(self, pad):
+        self.log("circle")
     def on_pad_left(self, pad):
         self.direction = 2
         self.log("left")
@@ -58,9 +58,9 @@ class Player(Actor):
             self.position.y += (self.speed*self.tick_delta)
             self.boolSprite = not self.boolSprite
             
-class NPC(Actor):
+class NPC(Pawn):
     def __init__(self, props):
-        Actor.__init__(self, props)
+        Pawn.__init__(self, props)
         self.boolSprite = False
         self.direction = 0
         self.speed = 2
@@ -70,9 +70,9 @@ class NPC(Actor):
         self.count = 20
 
     def on_tick(self, delta=1):
-        Actor.on_tick(self, delta)
+        Pawn.on_tick(self, delta)
         self.sprite = self.spritesheet[self.direction][int(self.boolSprite)]
-        if self.random_bool(0.05) or self.direction == 0 and \
+        if random_bool(0.05) or self.direction == 0 and \
            (not self.lastPad or time() - self.lastPad >= 0.05):
             self.lastPad = time()
             if self.position.y - (self.speed*self.tick_delta) >= 20:
@@ -80,7 +80,7 @@ class NPC(Actor):
                 self.boolSprite = not self.boolSprite
             else:
                 self.direction = 2
-        if self.random_bool(0.05) or self.direction == 2 and \
+        if random_bool(0.05) or self.direction == 2 and \
            (not self.lastPad or time() - self.lastPad >= 0.05):
             self.lastPad = time()
             if self.position.x - (self.speed*self.tick_delta) > 0:
@@ -88,7 +88,7 @@ class NPC(Actor):
                 self.boolSprite = not self.boolSprite
             else:
                 self.direction = 1
-        if self.random_bool(0.05) or self.direction == 1 and \
+        if random_bool(0.05) or self.direction == 1 and \
            (not self.lastPad or time() - self.lastPad >= 0.05):
             self.lastPad = time()
             if self.position.y + self.sprite.height + (self.speed*self.tick_delta) < 252:
@@ -96,7 +96,7 @@ class NPC(Actor):
                 self.boolSprite = not self.boolSprite
             else:
                 self.direction = 3
-        if self.random_bool(0.05) or self.direction == 3 and \
+        if random_bool(0.05) or self.direction == 3 and \
            (not self.lastPad or time() - self.lastPad >= 0.05):
             self.lastPad = time()
             if self.position.x + self.sprite.width + (self.speed*self.tick_delta) < 450:
@@ -105,13 +105,13 @@ class NPC(Actor):
             else:
                 self.direction = 0
 
-    def draw(self, screen):
-        screen.blit(self.sprite, 0, 0, self.sprite.width,
-            self.sprite.height, self.position.x, self.position.y, True)
+    def draw(self):
+        GLOBAL.SCREEN.blit(self.sprite, 0, 0, self.sprite.width,
+            self.sprite.height, int(self.position.x), int(self.position.y), True)
 
-class Fire(Renderable):
+class Fire(Actor):
     def __init__(self, props):
-        Renderable.__init__(self, props)
+        Actor.__init__(self, props)
         self.sprite_index = self.get(props, "sprite_index", 0)
         self.direction = 0
         self.speed = 2
@@ -121,17 +121,18 @@ class Fire(Renderable):
         self.count = 20
 
     def on_tick(self, delta=1):
-        Renderable.on_tick(self, delta)
+        Actor.on_tick(self, delta)
         self.sprite = self.spritesheet[0][self.sprite_index]
         self.sprite_index = (self.sprite_index+1)%4
 
-    def draw(self, screen):
-        screen.blit(self.sprite, 0, 0, self.sprite.width,
+    def draw(self):
+        GLOBAL.SCREEN.blit(self.sprite, 0, 0, self.sprite.width,
             self.sprite.height, self.position.x, self.position.y, True)
 
 class Game(Tickable):
     def on_begin(self):
-        engine.log(json.dumps([1, 3, 4]))
+        from beastlib.tools import stringify_json
+        engine.log(stringify_json([1, 3, 4]))
         spritesheet_purple = engine.create_spritesheet([
             ['assets/purple_wizard/amg1_bk1.png', 'assets/purple_wizard/amg1_bk2.png'],
             ['assets/purple_wizard/amg1_fr1.png', 'assets/purple_wizard/amg1_fr2.png'],
@@ -182,9 +183,9 @@ class Game(Tickable):
         while fires<10:
             fire = Fire({
                 "tick_interval": 0.1,
-                "position_x": engine.random_int(0, SCREEN_W),
-                "position_y": engine.random_int(0, SCREEN_H),  
-                "sprite_index": engine.random_int(0, 3),
+                "position_x": random_int(0, GLOBAL.SCREEN_W),
+                "position_y": random_int(0, GLOBAL.SCREEN_H),  
+                "sprite_index": random_int(0, 3),
                 "spritesheet": spritesheet_fire
             })
             fires+=1
@@ -193,17 +194,17 @@ class Game(Tickable):
             "is_pawn": True,
             "tick_interval": 0.0333,
             "spritesheet": spritesheet_purple,
-            "position_x": engine.random_int(0, SCREEN_W),
-            "position_y": engine.random_int(0, SCREEN_H),
+            "position_x": random_int(0, GLOBAL.SCREEN_W),
+            "position_y": random_int(0, GLOBAL.SCREEN_H),
         })
 
         chars = 0
         while chars<8:
             NPC({ 
                 "tick_interval": 0.0333,
-                "spritesheet": engine.random_choice(char_spritesheets),
-                "position_x": engine.random_int(0, SCREEN_W),
-                "position_y": engine.random_int(0, SCREEN_H),
+                "spritesheet": random_choice(char_spritesheets),
+                "position_x": random_int(0, GLOBAL.SCREEN_W),
+                "position_y": random_int(0, GLOBAL.SCREEN_H),
             })
             chars+=1
 

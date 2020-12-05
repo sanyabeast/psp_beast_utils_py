@@ -12,33 +12,70 @@ import datetime
 import stackless
 import sys
 from beastlib.types import *
+from beastlib.tools import *
 import random
 import threading
+from beastlib.tools import get_random_string
 
-
-ETHALON_TICK_INTERVAL = 0.0333333
-DEFAULT_BUTTON_THROTTLE = 0.025
+font = psp2d.Font('assets/font.png')    
 screen = psp2d.Screen()
 screen.clear(psp2d.Color(0,0,0,255))
-SCREEN_W = 480
-SCREEN_H = 272
-GLOBAL = {
-    "logger": None,
-    "engine": None,
-    "rend": None,
-    "screen": screen
-}
+
+class GLOBAL(object):
+    SCREEN = screen
+    REGISTER = {}
+    TYPED_REGISTER = {}
+    STATE = {}
+    SCREEN_W = 480
+    SCREEN_H = 272
+    ETHALON_TICK_INTERVAL = 0.0333333
+    DEFAULT_BUTTON_THROTTLE = 0.025
+    DEFAULT_FONT = font
 
 class CoreObject(object):
-    TAG = "object"
     alive = False
     screen = screen
     children_count = 0
     child_id = None
     parent = None
+    UUID = None
+
     def __init__(self, props={}):
+        from beastlib.tools import get_class_tags
+        self.TAG = self.__class__.__name__
+        self.TAGS = get_class_tags(self.__class__)
+        self.UUID = get_random_string(self.TAG)
         self.children = {}
         self.alive = True
+        self.register_object()
+    def find_object_by_type(self, object_type="Object"):
+        r = None
+        if object_type in GLOBAL.TYPED_REGISTER:
+            for k in GLOBAL.TYPED_REGISTER[object_type]:
+                r = GLOBAL.TYPED_REGISTER[object_type][k] 
+                break
+        return r
+    def is_a (object_type):
+        return object_type in self.TAGS
+    def find_objects_by_type(self, object_type="Object"):
+        r = {}
+        if object_type in GLOBAL.TYPED_REGISTER:
+            r = GLOBAL.TYPED_REGISTER[object_type]
+        return r    
+    def register_object(self):
+        GLOBAL.REGISTER[self.UUID] = self
+        
+        for k in self.TAGS:
+            if not k in GLOBAL.TYPED_REGISTER: GLOBAL.TYPED_REGISTER[k] = {}
+            GLOBAL.TYPED_REGISTER[k][self.UUID] = self
+
+    def unregister_object(self):
+        if self.UUID in GLOBAL.REGISTER:
+            del GLOBAL.REGISTER[self.UUID]
+        for k in self.TAGS:
+            if k in GLOBAL.TYPED_REGISTER and self.UUID in GLOBAL.TYPED_REGISTER[k]:
+                del GLOBAL.TYPED_REGISTER[k][self.UUID]
+            
     def get(self, dict, path, def_value=None):
         return dict[path] if path in dict else def_value
     def die(self):
@@ -46,6 +83,7 @@ class CoreObject(object):
         if self.parent:
             self.parent.remove_child(self)
         for k in self.children: self.children[k].die()
+        self.unregister_object()
     def add_child(self, child=None, child_id=None):
         if (child==None):
             self.log(data="child is None", to_console=True)
@@ -59,31 +97,22 @@ class CoreObject(object):
         return child
 
     def remove_child(self, child=None, child_id=None):
-        c = self.children[child.child_id if child!=None else child_id]
-        del self.children[c]
+        id = child.child_id if child!=None else child_id
+        c = self.children[id]
+        del self.children[id]
         c.parent=None
         c.child_id = None
-        return child
+        return c
     def log(self, data="...", to_console=False, to_screen=True):
         t = "%s: %s" % (self.TAG, str(data))
         if to_console: print(t)
-        if to_screen and GLOBAL["logger"]!=None: 
-            GLOBAL["logger"].add_line(t)
-    def random_bool(self, f=1):
-        return random.random()< 0.5 * (f)
-    def random_int(self, a=0, b=100):
-        return random.randint(a, b)
-    def random_choice(self, arr=[]):
-        return random.choice(arr)
-    def run_on_thread(self, cb):
-        th = threading.Thread(target=cb)
-        return th
-    def cycle_number(self, num=0, max=1, direction=1):
-        return (num+direction)%max
-
+        if to_screen:
+            debug_log = self.find_object_by_type("DebugLog")
+            if (debug_log!=None):
+                debug_log.add_line(t)
+    
 class Tickable(CoreObject):
-    TAG = "agent"
-    tick_interval = ETHALON_TICK_INTERVAL
+    tick_interval = GLOBAL.ETHALON_TICK_INTERVAL
     prev_tick_time = time()
     tick_delta = 1
     tick_started = False
@@ -92,14 +121,13 @@ class Tickable(CoreObject):
         self.ch = stackless.channel()
         stackless.tasklet(self.tick)()
         self.set_tick_interval(self.get(props, "tick_interval", self.tick_interval))
-        self.log("created")
     def set_tick_interval(self, interval=1/30):
         self.tick_interval= interval
     def tick(self):
         while self.alive:
             now = time()
             if now - self.prev_tick_time>self.tick_interval:
-                self.tick_delta = delta = (now - self.prev_tick_time)/ETHALON_TICK_INTERVAL
+                self.tick_delta = delta = (now - self.prev_tick_time)/GLOBAL.ETHALON_TICK_INTERVAL
                 self.on_tick(delta)
                 self.prev_tick_time = now
             stackless.schedule()
@@ -109,13 +137,8 @@ class Tickable(CoreObject):
             self.on_begin()
     def on_begin(self):
         pass
-    
-
-    
-        
 
 class PadButtonsObserver(CoreObject):
-    TAG = "padbuttonsobserver"
     pad_buttons_observe_enabled = False
     def __init__(self, props={}):
         CoreObject.__init__(self, props)
@@ -123,18 +146,18 @@ class PadButtonsObserver(CoreObject):
         
         self.pad_buttons_observer_state = {
             "button_throttle": {
-                "cross":DEFAULT_BUTTON_THROTTLE,
-                "triangle":DEFAULT_BUTTON_THROTTLE,
-                "square":DEFAULT_BUTTON_THROTTLE,
-                "circle":DEFAULT_BUTTON_THROTTLE,
-                "up":DEFAULT_BUTTON_THROTTLE,
-                "down":DEFAULT_BUTTON_THROTTLE,
-                "left": DEFAULT_BUTTON_THROTTLE,
-                "right":DEFAULT_BUTTON_THROTTLE,
-                "select":DEFAULT_BUTTON_THROTTLE,
-                "start":DEFAULT_BUTTON_THROTTLE,
-                "l":DEFAULT_BUTTON_THROTTLE,
-                "r":DEFAULT_BUTTON_THROTTLE,
+                "cross":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "triangle":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "square":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "circle":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "up":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "down":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "left": GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "right":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "select":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "start":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "l":GLOBAL.DEFAULT_BUTTON_THROTTLE,
+                "r":GLOBAL.DEFAULT_BUTTON_THROTTLE,
             },
             "prev_time": {
                 "cross":now,
@@ -155,7 +178,7 @@ class PadButtonsObserver(CoreObject):
         self.pad_buttons_observe_enabled = self.get(props, "is_pawn", False)
     def on_tick(self, delta=1):
         if self.pad_buttons_observe_enabled:
-            pad = GLOBAL["engine"].Controller()
+            pad = self.find_object_by_type("Engine").Controller()
             if   pad.cross:     self.is_button_throttled("cross") and self.on_pad_cross(pad)
             elif pad.triangle:  self.is_button_throttled("triangle") and self.on_pad_triangle(pad)
             elif pad.circle:    self.is_button_throttled("circle") and self.on_pad_circle(pad)
@@ -183,7 +206,7 @@ class PadButtonsObserver(CoreObject):
     def on_pad_l(self, pad): pass
     def on_pad_r(self, pad): pass
 
-    def set_button_throttling(self, name, delay=DEFAULT_BUTTON_THROTTLE):
+    def set_button_throttling(self, name, delay=GLOBAL.DEFAULT_BUTTON_THROTTLE):
         self.pad_buttons_observer_state["button_throttle"][name] = delay
     def is_button_throttled(self, name):
         delay = self.pad_buttons_observer_state["button_throttle"][name]
