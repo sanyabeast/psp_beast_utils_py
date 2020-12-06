@@ -3,7 +3,7 @@
 
 from beastlib.core import GLOBAL
 from beastlib.tools import random_bool, random_choice, random_int
-from beastlib.framework import Engine, Pawn, Actor, Tickable
+from beastlib.framework import Engine, Pawn, Actor, Tickable, TaskManager, Game
 from time import time
 import stackless
 
@@ -27,12 +27,24 @@ class Player(Pawn):
             self.sprite.height, int(self.position.x), int(self.position.y), True)
     def on_pad_triangle(self, pad):
         from beastlib.tools import get_random_string
-        self.log(get_random_string("test"))
+        def dojob(f):
+            self.log(get_random_string("test"))
+            f()
+        engine.task_manager.add_task(dojob)
     def on_pad_cross(self, pad):
         self.log("cross")
-        engine.die()
+        engine.destroy()
     def on_pad_circle(self, pad):
         self.log("circle")
+    def on_pad_square(self, pad):
+        def dojob(f):
+            engine.log("1")
+            engine.log("2")
+            engine.log("3")
+            if self.find_object_by_type("Fire")!=None:
+                self.find_object_by_type("Fire").destroy()
+            f()
+        engine.task_manager.add_task(dojob)
     def on_pad_left(self, pad):
         self.direction = 2
         self.log("left")
@@ -61,6 +73,8 @@ class Player(Pawn):
 class NPC(Pawn):
     def __init__(self, props):
         Pawn.__init__(self, props)
+        self.created_at = time()
+        self.lifetime = random_int(10, 60)
         self.boolSprite = False
         self.direction = 0
         self.speed = 2
@@ -70,6 +84,10 @@ class NPC(Pawn):
         self.count = 20
 
     def on_tick(self, delta=1):
+        # now = time()
+        # if (now-self.created_at>self.lifetime): 
+        #     self.destroy()
+        #     return
         Pawn.on_tick(self, delta)
         self.sprite = self.spritesheet[self.direction][int(self.boolSprite)]
         if random_bool(0.05) or self.direction == 0 and \
@@ -128,42 +146,62 @@ class Fire(Actor):
     def draw(self):
         GLOBAL.SCREEN.blit(self.sprite, 0, 0, self.sprite.width,
             self.sprite.height, self.position.x, self.position.y, True)
+    def on_destroy(self, reason):
+        self.log("the fire is out")
 
-class Game(Tickable):
+class DungeonGame(Game):
+    max_fires = 16
+    max_npcs = 8
+    spritesheets = {}
+    def __init__(self, props):
+        Game.__init__(self, props)
+        
+    def on_tick(self, delta):
+        if self.count_t("Fire")<self.max_fires:
+            def dojob(f):
+                fire = Fire({
+                    "tick_interval": 0.1,
+                    "position_x": random_int(0, GLOBAL.SCREEN_W),
+                    "position_y": random_int(0, GLOBAL.SCREEN_H),  
+                    "sprite_index": random_int(0, 3),
+                    "spritesheet": self.spritesheets["spritesheet_fire"]
+                })
+                f()
+            engine.task_manager.add_task(dojob)
+
+      
     def on_begin(self):
-        from beastlib.tools import stringify_json
-        engine.log(stringify_json([1, 3, 4]))
-        spritesheet_purple = engine.create_spritesheet([
+        self.spritesheets["spritesheet_purple"] = engine.create_spritesheet([
             ['assets/purple_wizard/amg1_bk1.png', 'assets/purple_wizard/amg1_bk2.png'],
             ['assets/purple_wizard/amg1_fr1.png', 'assets/purple_wizard/amg1_fr2.png'],
             ['assets/purple_wizard/amg1_lf1.png', 'assets/purple_wizard/amg1_lf2.png'],
             ['assets/purple_wizard/amg1_rt1.png', 'assets/purple_wizard/amg1_rt2.png'],
         ])
-        spritesheet_lime = engine.create_spritesheet([
+        self.spritesheets["spritesheet_lime"] = engine.create_spritesheet([
             ['assets/lime_wizard/amg1_bk1.png', 'assets/lime_wizard/amg1_bk2.png'],
             ['assets/lime_wizard/amg1_fr1.png', 'assets/lime_wizard/amg1_fr2.png'],
             ['assets/lime_wizard/amg1_lf1.png', 'assets/lime_wizard/amg1_lf2.png'],
             ['assets/lime_wizard/amg1_rt1.png', 'assets/lime_wizard/amg1_rt2.png'],
         ])
-        spritesheet_blue = engine.create_spritesheet([
+        self.spritesheets["spritesheet_blue"] = engine.create_spritesheet([
             ['assets/blue_wizard/amg1_bk1.png', 'assets/blue_wizard/amg1_bk2.png'],
             ['assets/blue_wizard/amg1_fr1.png', 'assets/blue_wizard/amg1_fr2.png'],
             ['assets/blue_wizard/amg1_lf1.png', 'assets/blue_wizard/amg1_lf2.png'],
             ['assets/blue_wizard/amg1_rt1.png', 'assets/blue_wizard/amg1_rt2.png'],
         ])
-        spritesheet_red = engine.create_spritesheet([
+        self.spritesheets["spritesheet_red"] = engine.create_spritesheet([
             ['assets/red_wizard/amg1_bk1.png', 'assets/red_wizard/amg1_bk2.png'],
             ['assets/red_wizard/amg1_fr1.png', 'assets/red_wizard/amg1_fr2.png'],
             ['assets/red_wizard/amg1_lf1.png', 'assets/red_wizard/amg1_lf2.png'],
             ['assets/red_wizard/amg1_rt1.png', 'assets/red_wizard/amg1_rt2.png'],
         ])
-        spritesheet_cyan = engine.create_spritesheet([
+        self.spritesheets["spritesheet_cyan"] = engine.create_spritesheet([
             ['assets/cyan_wizard/amg1_bk1.png', 'assets/cyan_wizard/amg1_bk2.png'],
             ['assets/cyan_wizard/amg1_fr1.png', 'assets/cyan_wizard/amg1_fr2.png'],
             ['assets/cyan_wizard/amg1_lf1.png', 'assets/cyan_wizard/amg1_lf2.png'],
             ['assets/cyan_wizard/amg1_rt1.png', 'assets/cyan_wizard/amg1_rt2.png'],
         ])
-        spritesheet_fire = engine.create_spritesheet([
+        self.spritesheets["spritesheet_fire"] = engine.create_spritesheet([
             [
                 'assets/fire_a/fire_0.png', 
                 'assets/fire_a/fire_1.png',
@@ -172,32 +210,25 @@ class Game(Tickable):
             ]
         ])
 
+        from beastlib.tools import stringify_json
+        engine.log(stringify_json([1, 3, 4]))
+
+        
         char_spritesheets = [
-            spritesheet_cyan,
-            spritesheet_lime,
-            spritesheet_blue,
-            spritesheet_red
+            self.spritesheets["spritesheet_cyan"],
+            self.spritesheets["spritesheet_lime"],
+            self.spritesheets["spritesheet_blue"],
+            self.spritesheets["spritesheet_red"]
         ]
 
-        fires = 0
-        while fires<10:
-            fire = Fire({
-                "tick_interval": 0.1,
-                "position_x": random_int(0, GLOBAL.SCREEN_W),
-                "position_y": random_int(0, GLOBAL.SCREEN_H),  
-                "sprite_index": random_int(0, 3),
-                "spritesheet": spritesheet_fire
-            })
-            fires+=1
-
-        player = Player({ 
+        player = Player({
             "is_pawn": True,
             "tick_interval": 0.0333,
-            "spritesheet": spritesheet_purple,
+            "spritesheet": random_choice(char_spritesheets),
             "position_x": random_int(0, GLOBAL.SCREEN_W),
             "position_y": random_int(0, GLOBAL.SCREEN_H),
         })
-
+    
         chars = 0
         while chars<8:
             NPC({ 
@@ -208,15 +239,15 @@ class Game(Tickable):
             })
             chars+=1
 
-        engine.set_loading(False)
 
-game = Game({
+game = DungeonGame({
     "tick_interval": 1
 })
 
 engine = Engine({
     "debug": True,
-    "is_loading": True
+    "is_loading": True,
+    "create_renderer": True,
+    "create_task_manager": True
 })
-
 stackless.run()

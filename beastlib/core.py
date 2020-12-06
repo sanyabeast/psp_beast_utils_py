@@ -24,6 +24,7 @@ screen.clear(psp2d.Color(0,0,0,255))
 class GLOBAL(object):
     SCREEN = screen
     REGISTER = {}
+    TYPED_REGISTER_COUNT = {}
     TYPED_REGISTER = {}
     STATE = {}
     SCREEN_W = 480
@@ -33,10 +34,9 @@ class GLOBAL(object):
     DEFAULT_FONT = font
 
 class CoreObject(object):
-    alive = False
-    screen = screen
+    is_alive = False
     children_count = 0
-    child_id = None
+    as_child_id = None
     parent = None
     UUID = None
 
@@ -46,18 +46,25 @@ class CoreObject(object):
         self.TAGS = get_class_tags(self.__class__)
         self.UUID = get_random_string(self.TAG)
         self.children = {}
-        self.alive = True
+        self.is_alive = True
         self.register_object()
-    def find_object_by_type(self, object_type="Object"):
+    def count_objects_by_type(self, object_type):
+        r = 0
+        if object_type in GLOBAL.TYPED_REGISTER_COUNT:
+            r =  GLOBAL.TYPED_REGISTER_COUNT[object_type]
+        return r
+    def find_object_by_type(self, object_type=""):
         r = None
         if object_type in GLOBAL.TYPED_REGISTER:
             for k in GLOBAL.TYPED_REGISTER[object_type]:
                 r = GLOBAL.TYPED_REGISTER[object_type][k] 
                 break
         return r
+    def find_t(self, object_type=""): return self.find_object_by_type(object_type)
+    def count_t(self, object_type=""): return self.count_objects_by_type(object_type)
     def is_a (object_type):
         return object_type in self.TAGS
-    def find_objects_by_type(self, object_type="Object"):
+    def find_objects_by_type(self, object_type=""):
         r = {}
         if object_type in GLOBAL.TYPED_REGISTER:
             r = GLOBAL.TYPED_REGISTER[object_type]
@@ -67,7 +74,9 @@ class CoreObject(object):
         
         for k in self.TAGS:
             if not k in GLOBAL.TYPED_REGISTER: GLOBAL.TYPED_REGISTER[k] = {}
+            if not k in GLOBAL.TYPED_REGISTER_COUNT: GLOBAL.TYPED_REGISTER_COUNT[k] = 0
             GLOBAL.TYPED_REGISTER[k][self.UUID] = self
+            GLOBAL.TYPED_REGISTER_COUNT[k]+=1
 
     def unregister_object(self):
         if self.UUID in GLOBAL.REGISTER:
@@ -75,33 +84,40 @@ class CoreObject(object):
         for k in self.TAGS:
             if k in GLOBAL.TYPED_REGISTER and self.UUID in GLOBAL.TYPED_REGISTER[k]:
                 del GLOBAL.TYPED_REGISTER[k][self.UUID]
+                GLOBAL.TYPED_REGISTER_COUNT[k]-=1
             
     def get(self, dict, path, def_value=None):
         return dict[path] if path in dict else def_value
-    def die(self):
-        self.alive = False
+    def destroy_all(self):
+        for ob in GLOBAL.REGISTER.keys():
+            GLOBAL.REGISTER[ob].destroy()
+    def destroy(self, reason="default"):
+        self.on_destroy(reason)
+        self.is_alive = False
         if self.parent:
             self.parent.remove_child(self)
-        for k in self.children: self.children[k].die()
+        for k in self.children.keys(): self.children[k].destroy()
         self.unregister_object()
-    def add_child(self, child=None, child_id=None):
+    def on_destroy(self, reason="default"):
+        pass
+    def add_child(self, child=None, as_child_id=None):
         if (child==None):
             self.log(data="child is None", to_console=True)
             return
             
-        if child_id==None: child_id=str(self.children_count)
-        child.child_id = child_id
+        if as_child_id==None: as_child_id=str(self.children_count)
+        child.as_child_id = as_child_id
         child.parent = self
-        self.children[child_id]=child
+        self.children[as_child_id]=child
         self.children_count+=1
         return child
 
-    def remove_child(self, child=None, child_id=None):
-        id = child.child_id if child!=None else child_id
+    def remove_child(self, child=None, as_child_id=None):
+        id = child.as_child_id if child!=None else as_child_id
         c = self.children[id]
         del self.children[id]
         c.parent=None
-        c.child_id = None
+        c.as_child_id = None
         return c
     def log(self, data="...", to_console=False, to_screen=True):
         t = "%s: %s" % (self.TAG, str(data))
@@ -124,17 +140,19 @@ class Tickable(CoreObject):
     def set_tick_interval(self, interval=1/30):
         self.tick_interval= interval
     def tick(self):
-        while self.alive:
+        while self.is_alive:
             now = time()
             if now - self.prev_tick_time>self.tick_interval:
-                self.tick_delta = delta = (now - self.prev_tick_time)/GLOBAL.ETHALON_TICK_INTERVAL
-                self.on_tick(delta)
-                self.prev_tick_time = now
+                if self.tick_started==True:
+                    self.tick_delta = delta = (now - self.prev_tick_time)/GLOBAL.ETHALON_TICK_INTERVAL
+                    self.on_tick(delta)
+                    self.prev_tick_time = now
+                else:
+                    self.tick_started = True
+                    self.on_begin()
             stackless.schedule()
     def on_tick(self, delta=1):
-        if not self.tick_started:
-            self.tick_started = True
-            self.on_begin()
+        pass    
     def on_begin(self):
         pass
 
@@ -178,7 +196,7 @@ class PadButtonsObserver(CoreObject):
         self.pad_buttons_observe_enabled = self.get(props, "is_pawn", False)
     def on_tick(self, delta=1):
         if self.pad_buttons_observe_enabled:
-            pad = self.find_object_by_type("Engine").Controller()
+            pad = psp2d.Controller()
             if   pad.cross:     self.is_button_throttled("cross") and self.on_pad_cross(pad)
             elif pad.triangle:  self.is_button_throttled("triangle") and self.on_pad_triangle(pad)
             elif pad.circle:    self.is_button_throttled("circle") and self.on_pad_circle(pad)

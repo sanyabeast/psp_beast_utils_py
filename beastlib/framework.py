@@ -16,7 +16,6 @@ from beastlib.types import Vec2
 
 
 class Renderer(Tickable):
-    is_Renderer = True
     def __init__(self, props={}):
         Tickable.__init__(self, props)
         from beastlib.actors import Loader
@@ -29,28 +28,36 @@ class Renderer(Tickable):
         for a in actors:
             if actors[a].visible: actors[a].draw()
         GLOBAL.SCREEN.swap()
-    def die (self):
-        Tickable.die(self)
+    def destroy (self):
+        Tickable.destroy(self)
 
     def set_loading(self, show_loader=True):
         self.show_loader = False
         self.loader.visible = False
 
 class Engine(Tickable):
-    is_Engine = True
     Controller = psp2d.Controller
     debug = False
     rend = None
     debug_log = None
     is_loading = False
+    @property
+    def renderer(self): return self.find_object_by_type("Renderer")
+    @property
+    def task_manager(self): return self.find_object_by_type("TaskManager")
     def __init__(self, props={}):
         Tickable.__init__(self, props)
         pspos.setclocks( self.get(props, "cpu_clock", 333), self.get(props, "mem_clock", 166) )
-        self.renderer = Renderer(props)
+        if (self.get(props, "create_renderer")): self.create_renderer(props)
+        if (self.get(props, "create_task_manager")): self.create_task_scheduler(props)
         self.debug = self.get(props, "debug", False)
         self.is_loading = self.get(props, "is_loading", False)
         from beastlib.actors import DebugLog
         if (self.debug): self.debug_log = DebugLog({ "rend": self.rend  })
+    def create_renderer(self, props={}):
+        return Renderer(props)
+    def create_task_scheduler(self, props={}):
+        return TaskManager(props)
     def create_spritesheet(self, urls):
         sprites = []
         for u in urls:
@@ -66,8 +73,8 @@ class Engine(Tickable):
         return sprites
     def load_font(self, url):
         return psp2d.Font(url)   
-    def die(self):
-        Tickable.die(self)
+    def destroy(self):
+        self.destroy_all()
     def set_loading(self, is_loading=False):
         self.is_loading = is_loading
         # self.find_object_by_type("Renderer").set_loading(False)
@@ -93,3 +100,29 @@ class Pawn(Actor, PadButtonsObserver):
         Actor.on_tick(self, delta)
         PadButtonsObserver.on_tick(self, delta)
 
+class TaskManager(Tickable):
+    tasks = []
+    task_in_progress = False
+    tick_interval = 0.1
+    def __init__(self, props={}):
+        Tickable.__init__(self, props)
+    def on_tick(self, delta):
+        if (self.task_in_progress or len(self.tasks)==0): return
+        self.task_in_progress = True
+        task = self.tasks.pop(0)
+        self.tasks = self.tasks[1:len(self.tasks)]
+        if (task!=None):
+            self.log("task started " + str(len(self.tasks)))
+            task(self.finish_task)
+        else: 
+            self.task_in_progress = False
+    def finish_task(self):
+        self.log("task finished")
+        self.task_in_progress = False
+    def add_task(self, task):
+        self.tasks.append(task)
+
+
+class Game(Tickable):
+    tick_interval = 0.0625
+    pass
