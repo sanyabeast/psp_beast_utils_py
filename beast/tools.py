@@ -3,10 +3,12 @@
 ## 05 dec 2020
 
 import simplejson as json
+import math
 
 def get_random_string(prefix="uuid", length=16):
     from random import choice
-    return prefix + "".join([choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(length)])
+    # return prefix + "".join([choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(length)])
+    return prefix + "".join([choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(length)])
 
 def random_bool(f=1):
     from random import random
@@ -33,3 +35,5 @@ def get_class_tags(cl):
     for b in cl.__bases__:
         r += get_class_tags(b)
     return r
+def get_vec2_length(x, y):
+    return math.sqrt(math.pow(x, 2) + math.pow(y, 2))
