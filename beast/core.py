@@ -17,10 +17,18 @@ import random
 import threading
 from beast.tools import get_random_string
 import types
+import glob
+import os
+import importlib
 
 font = psp2d.Font('assets/font.png')    
 screen = psp2d.Screen()
 screen.clear(psp2d.Color(0,0,0,255))
+
+
+def LOG(self, data="...", to_console=True, to_screen=False):
+    t = "%s: %s" % ("Anonumous", str(data))
+    if to_console: print(t)
 
 class GLOBAL(object):
     SCREEN = screen
@@ -34,6 +42,8 @@ class GLOBAL(object):
     DEFAULT_BUTTON_THROTTLE = 0.025
     DEFAULT_FONT = font
     NON_CONFIGURABLE_PROPS = ["TAG", "TAGS", "UUID", "IS_ALIVE", "PROPS_IS_INITED"]
+    ENGINE = None
+    RENDERER = None
 
 class CoreObject(object):
     IS_ALIVE = False
@@ -125,7 +135,13 @@ class CoreObject(object):
             DebugLog = self.FIND_OBJECT_BY_TYPE("DebugLog")
             if (DebugLog!=None):
                 DebugLog.add_line(t)
-    
+    def GET_ENGINE(self):
+        return GLOBAL.ENGINE
+    def GET_RENDERER(self):
+        return GLOBAL.RENDERER
+    def TIME(self):
+        return time()
+
 class Tickable(CoreObject):
     TICK_INTERVAL = GLOBAL.ETHALON_TICK_INTERVAL
     PREV_TICK_TIME = time()
@@ -270,3 +286,37 @@ class PadButtonsObserver(Tickable):
         else:
             self.BUTTONS_STATE["BUTTON_PREV_TIME"][NAME] = NOW
             return True
+
+class Launcher(CoreObject):
+    apps = None
+    def __init__(self, PROPS={}, INIT_PROPS=True):
+        CoreObject.__init__(self, PROPS, False)
+        if INIT_PROPS: self.INIT_PROPS(PROPS)
+        self.apps = {}
+        self.locate_apps()
+        
+    def locate_apps(self):
+        self.apps = self.apps if self.apps!=None else {}
+        print(os.getcwd() + "/games/*/app*.py")
+        d=glob.glob(os.getcwd() + "/games/*/app*.py")
+        for k in d:
+            app_name = k.split("/")[-2]
+            package_name = k.replace(os.getcwd(), "").replace(".py", "").replace("/", ".")[1:]
+            self.LOG("found app `%s`, package: `%s`" % (app_name, package_name), to_console=True)
+            self.apps[app_name] = {
+                "package": package_name,
+                "module": None
+            }
+
+    def create_app(self, app_name):
+        self.LOG("launching: " + app_name, to_console=True)
+        if app_name in self.apps:
+            if self.apps[app_name]["module"]==None:
+                self.LOG("creating app `%s`" % (app_name), to_console=True)
+                self.apps[app_name]["module"] = importlib.import_module(self.apps[app_name]["package"]).App
+                return self.apps[app_name]["module"]
+            else:
+                return self.apps[app_name]["module"]
+        else:
+            self.LOG("cannot create app `%s`. no such app or it is located outside `./games` directory" % (app_name), to_console=True)
+            return None

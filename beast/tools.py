@@ -3,6 +3,7 @@
 ## 05 dec 2020
 
 import simplejson as json
+import psp2d
 import math
 
 def get_random_string(prefix="uuid", length=16):
@@ -37,3 +38,18 @@ def get_class_tags(cl):
     return r
 def get_vec2_length(x, y):
     return math.sqrt(math.pow(x, 2) + math.pow(y, 2))
+
+# sprites
+def create_spritesheet(urls):
+        sprites = []
+        for u in urls:
+            if type(u) is str:
+                sprites.append(psp2d.Image(u))
+            elif type(u) is list:
+                r = []
+                for uu in u:
+                    r.append(psp2d.Image(uu))
+                sprites.append(r) #Direction = north   = 0
+            elif (type(u) is tuple):
+                sprites.append((psp2d.Image(u[0]), psp2d.Image(u[1]))) #Direction = north   = 0
+        return sprites

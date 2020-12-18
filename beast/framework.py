@@ -17,6 +17,7 @@ class Renderer(Tickable):
     def __init__(self, PROPS={}, INIT_PROPS=True):
         Tickable.__init__(self, PROPS, False)
         if INIT_PROPS: self.I(PROPS)
+        GLOBAL.RENDERER = self
         from beast.actors import Loader
         self.Loader = Loader(PROPS)
         if self.GET(PROPS, "IS_LOADING")==True: self.SET_LOADING(True)
@@ -46,6 +47,7 @@ class Engine(Tickable):
     def __init__(self, PROPS={}, INIT_PROPS=True):
         Tickable.__init__(self, PROPS, False)
         if INIT_PROPS: self.I(PROPS)
+        GLOBAL.ENGINE = self
         pspos.setclocks( self.CPU_CLOCK, self.MEM_CLOCK )
         from beast.actors import DebugLog
         if (self.DEBUG): self.DebugLog = DebugLog(PROPS)
@@ -53,19 +55,7 @@ class Engine(Tickable):
         return Renderer(PROPS)
     def CREATE_TASK_MANAGER(self, PROPS={}):
         return TaskManager(PROPS)
-    def CREATE_SPRITESHEET(self, urls):
-        sprites = []
-        for u in urls:
-            if type(u) is str:
-                sprites.append(psp2d.Image(u))
-            elif type(u) is list:
-                r = []
-                for uu in u:
-                    r.append(psp2d.Image(uu))
-                sprites.append(r) #Direction = north   = 0
-            elif (type(u) is tuple):
-                sprites.append((psp2d.Image(u[0]), psp2d.Image(u[1]))) #Direction = north   = 0
-        return sprites
+    
     def load_font(self, url):
         return psp2d.Font(url)   
     def DESTROY(self):
